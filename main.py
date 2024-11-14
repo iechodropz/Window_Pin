@@ -2,7 +2,9 @@ import ctypes
 import ctypes.wintypes
 import threading
 import tkinter as tk
+from tkinter import messagebox
 import win32con
+import win32gui
 
 
 class PinWindowApp:
@@ -17,17 +19,59 @@ class PinWindowApp:
         # List to keep track of all pinned windows.
         self.pinned_windows = []
 
-        self.pin_button = tk.Button(tk_window, text="Pin Window", command=self.toggle_pin_process)
+        self.pin_button = tk.Button(
+            tk_window, text="Pin Window", command=self.toggle_pin_process
+        )
         # pack() automatically places the widget (pin_button) inside the tk_window, stacking it from top to bottom.
         # pady adds padding to the top, and bottom of the widget.
         self.pin_button.pack(pady=10)
 
-        self.unpin_button = tk.Button(tk_window, text="Unpin Window", command=self.unpin_window)
+        self.unpin_button = tk.Button(
+            tk_window, text="Unpin Window", command=self.unpin_window
+        )
         self.unpin_button.pack(pady=10)
 
-    # TODO
     def pin_window(self):
-        pass
+        if not self.is_pinning:
+            return
+
+        self.stop_pin_process()
+
+        cursor_position = win32gui.GetCursorPos()
+        # WindowFromPoint gets the handle (a unique identifier) of the window located ath the cursor_position.
+        window_handle = win32gui.WindowFromPoint(cursor_position)
+        # win32con.GA_ROOT tells GetAncestor() to return the top-level or root window in the hierarchy of the given window_hanlde
+        # When you click a part of a window, such as the main body, the window handle returned by functions like WindowFromPoint might refer to a sub-component or child window rather than the root (top-level) window.
+        root_handle = win32gui.GetAncestor(window_handle, win32con.GA_ROOT)
+
+        # TODO check if have to get root handle for winfo_id()
+        # winfo_id() returns the window handle of the widget it's called on.
+        if root_handle and root_handle != self.tk_window.winfo_id():
+            try:
+                selected_window_title = win32gui.GetWindowText(root_handle)
+
+                if selected_window_title and selected_window_title.strip():
+                    # HWND_TOPMOST: Makes root_handle window stay on top of all other windows, even when it loses focus.
+                    # 0,0,0,0: These represent the x and y positions and width and height of the root_handle window.
+                    # SWP_NOMOVE: This flag prevents the window from being moved, it ignores x and y values.
+                    # SWP_NOSIZE: This flag prevents the window from being resized, it ignores width and height values.
+                    # |: The bitwise OR (|) is used to combine ttwo bit flags into a single value. This allows both flags to be set simultaneously. This is common patterns in low-level Windows programming.
+                    win32gui.SetWindowPos(
+                        root_handle,
+                        win32con.HWND_TOPMOST,
+                        0,
+                        0,
+                        0,
+                        0,
+                        win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
+                    )
+                    self.pinned_windows.append(root_handle)
+                else:
+                    messagebox.showwarning("Error", "No valid window selected!")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to pin window: {str(e)}")
+        else:
+            messagebox.showwarning("Error", "Please select a window other than this.")
 
     def run_mouse_hook(self):
         # callback_function sets up a bridge for Windows to talk to Python using low_level_mouse_handler() whenever a mouse event occurs.
@@ -40,12 +84,16 @@ class PinWindowApp:
                 self.tk_window.after(0, self.pin_window)
             # low_level_mouse_handler processes the event, does its own work (calls self.root.after()), and then lets the system continue processing the event, passing it to the next handler in the hook chain.
             # First Parameter: Indicates the next hook to call, by passing None, you're indicating that no specific hook is being referenced and the mouse click should continue its default job.
-            return ctypes.windll.user32.CallNextHookEx(None, event_status, event_type, event_info)
+            return ctypes.windll.user32.CallNextHookEx(
+                None, event_status, event_type, event_info
+            )
 
         # WINFUNCTYPE must match the low_level_mouse_handler function's signature precisely, this matching is essential because callback_function tells Windows how the callback function is structured in terms of the parameter types and return type.
         # First Argument: Specifies the return type of the function.
         # Second, Third, Fourth Argument: Correspond to event_status, event_type, and event_info in low_level_mouse_handler().
-        callback_function = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_void_p))
+        callback_function = ctypes.WINFUNCTYPE(
+            ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_void_p)
+        )
         # pointer is now a function pointer that will be passed to SetWindowsHookExA. The system expects a function pointer when setting up a hook procedure, which will be called whenever the specified event happens.
         pointer = callback_function(low_level_mouse_handler)
         # First Parameter: The value 14 corresponds to WH_MOUSE_LL, which stands for a low-level mouse hook.
