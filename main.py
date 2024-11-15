@@ -125,9 +125,23 @@ class PinWindowApp:
         self.pin_button.config(text="Cancel Pinning")
         self.start_mouse_hook()
 
-    # TODO
+    def stop_mouse_hook(self):
+        if self.hook:
+            # PostThreadMessageW: Posts a message to the message queue of a specific thread (identified by its thread ID).
+            # hook_thread.ident: Gets the unique ID of the thread that is running the mouse hook.
+            # WM_QUIT: Windows message that signals the thread to exit its message loop when the thread retrieves the message from the queue.
+            # 0,0: Additional message parameters (event_type and event_info), which are unused in the case of WM_QUIT but still required in the function definition.
+            ctypes.windll.user32.PostThreadMessageW(
+                self.hook_thread.ident, win32con.WM_QUIT, 0, 0
+            )
+            # Waits for the thread to finish before moving on with the rest of the code.
+            self.hook_thread.join()
+            self.hook = None
+
     def stop_pin_process(self):
-        pass
+        self.is_pinning = False
+        self.pin_button.config(text="Pin Window")
+        self.stop_mouse_hook()
 
     def toggle_pin_process(self):
         if not self.is_pinning:
