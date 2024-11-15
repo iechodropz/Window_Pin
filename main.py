@@ -3,6 +3,7 @@ import ctypes.wintypes
 import threading
 import tkinter as tk
 from tkinter import messagebox
+import atexit
 import win32con
 import win32gui
 
@@ -30,6 +31,22 @@ class PinWindowApp:
             tk_window, text="Unpin Window", command=self.unpin_window
         )
         self.unpin_button.pack(pady=10)
+
+        atexit.register(self.cleanup)
+
+    def cleanup(self):
+        # Unpin all pinned windows
+        for window_handle in self.pinned_windows:
+            # TODO Wrap in a try block and check how to handle errors during cleanup.
+            win32gui.SetWindowPos(
+                window_handle,
+                win32con.HWND_NOTOPMOST,
+                0,
+                0,
+                0,
+                0,
+                win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
+            )
 
     def pin_window(self):
         if not self.is_pinning:
