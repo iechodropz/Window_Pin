@@ -149,9 +149,24 @@ class PinWindowApp:
         else:
             self.stop_pin_process()
 
-    # TODO
     def unpin_window(self):
-        pass
+        if self.pinned_windows:
+            try:
+                window_handle = self.pinned_windows.pop()
+                # NOTOPMOST: Specifies that window_handle should no longer be a topmost window but instead be placed below all other topmost windows.
+                win32gui.SetWindowPos(
+                    window_handle,
+                    win32con.HWND_NOTOPMOST,
+                    0,
+                    0,
+                    0,
+                    0,
+                    win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
+                )
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to unpin window: {str(e)}")
+        else:
+            messagebox.showwarning("Error", "No windows are pinned!")
 
 
 if __name__ == "__main__":
