@@ -17,7 +17,7 @@ import win32con
 import win32gui
 
 
-class PinWindowApp:
+class PinWindow:
     """
     A GUI application to pin and unpin windows in a Windows environment.
 
@@ -63,7 +63,7 @@ class PinWindowApp:
             try:
                 self.window_z_index(window_handle, win32con.HWND_NOTOPMOST)
             except Exception as e:
-                messagebox.showerror("Error", f"Failed o cleanup window: {str(e)}")
+                messagebox.showerror("Error", f"Failed to cleanup window: {str(e)}")
 
     def get_window_handle_root(self, window_handle):
         cursor_position = win32gui.GetCursorPos()
@@ -73,7 +73,7 @@ class PinWindowApp:
         # When you click a part of a window, such as the main body, the window handle returned by functions like WindowFromPoint might refer to a sub-component or child window rather than the root (top-level) window.
         return win32gui.GetAncestor(window_handle, win32con.GA_ROOT)
 
-    def is_valid_window(self):
+    def is_valid_window(self, root_window_handle):
         selected_window_title = win32gui.GetWindowText(root_window_handle)
         return (
             True if selected_window_title and selected_window_title.strip() else False
@@ -81,7 +81,7 @@ class PinWindowApp:
 
     def pin_window(self):
         """
-        Pins the window currently that was clicked.
+        Pins the window that was clicked.
         """
 
         if not self.is_pinning:
@@ -94,7 +94,7 @@ class PinWindowApp:
         # winfo_id() returns the window handle of the widget it's called on.
         if root_window_handle and root_window_handle != self.tk_window.winfo_id():
             try:
-                if self.is_valid_window():
+                if self.is_valid_window(root_window_handle):
                     # HWND_TOPMOST: Makes root_window_handle window stay on top of all other windows, even when it loses focus.
                     self.window_z_index(root_window_handle, win32con.HWND_TOPMOST)
                     self.pinned_windows.append(root_window_handle)
@@ -229,15 +229,7 @@ class PinWindowApp:
             try:
                 window_handle = self.pinned_windows.pop()
                 # NOTOPMOST: Specifies that window_handle should no longer be a topmost window but instead be placed below all other topmost windows.
-                win32gui.SetWindowPos(
-                    window_handle,
-                    win32con.HWND_NOTOPMOST,
-                    0,
-                    0,
-                    0,
-                    0,
-                    win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
-                )
+                self.window_z_index(window_handle, win32con.HWND_NOTOPMOST)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to unpin window: {str(e)}")
         else:
@@ -247,6 +239,6 @@ class PinWindowApp:
 if __name__ == "__main__":
     # Initializes a blank window where you can add widgets (like buttons, labels, etc.).
     root = tk.Tk()
-    app = PinWindowApp(root)
+    app = PinWindow(root)
     # Keeps the application running and continuously checks for events (button clicks, mouse movements, keyboard input, etc.) to respond to them.
     root.mainloop()
