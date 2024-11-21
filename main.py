@@ -1,3 +1,12 @@
+"""
+This module provides a GUI-based utility for pinning and unpinning windows
+on top of other windows in a Windows environment. It utilizes Windows API
+to manage window handles and their positioning.
+
+The application uses the `tkinter` library to build the GUI and `ctypes`
+to interact with low-level Windows hooks for mouse events.
+"""
+
 import ctypes
 import ctypes.wintypes
 import threading
@@ -9,15 +18,25 @@ import win32gui
 
 
 class PinWindowApp:
+    """
+    A GUI application to pin and unpin windows in a Windows environment.
+
+    Attributes:
+        tk_window (Tk): The main Tkinter window for the application.
+        is_pinning (bool): Flag to indicate if the app is in the process of pinning a window.
+        hook_thread (Thread): A thread for running the mouse hook for window selection.
+        hook (function): The callback hook for mouse events.
+        pinned_windows (list): List of window handles that are pinned on top.
+        pin_button (Button): Button widget to start or cancel the pinning process.
+        unpin_button (Button): Button widget to unpin the most recently pinned window.
+    """
+
     def __init__(self, tk_window):
         self.is_pinning = False
         self.hook_thread = None
         self.hook = None
-
         self.tk_window = tk_window
         self.tk_window.title("Window Pin")
-
-        # List to keep track of all pinned windows.
         self.pinned_windows = []
 
         self.pin_button = tk.Button(
@@ -35,54 +54,50 @@ class PinWindowApp:
         atexit.register(self.cleanup)
 
     def cleanup(self):
+        """
+        Ensures all pinned windows are unpinned when the application exits.
+        """
+
         # Unpin all pinned windows
         for window_handle in self.pinned_windows:
-            # TODO Wrap in a try block and check how to handle errors during cleanup.
-            win32gui.SetWindowPos(
-                window_handle,
-                win32con.HWND_NOTOPMOST,
-                0,
-                0,
-                0,
-                0,
-                win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
-            )
+            try:
+                self.window_z_index(window_handle, win32con.HWND_NOTOPMOST)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed o cleanup window: {str(e)}")
+
+    def get_window_handle_root(self, window_handle):
+        cursor_position = win32gui.GetCursorPos()
+        # WindowFromPoint gets the handle (a unique identifier) of the window located ath the cursor_position.
+        window_handle = win32gui.WindowFromPoint(cursor_position)
+        # win32con.GA_ROOT tells GetAncestor() to return the top-level or root window in the hierarchy of the given window_handle
+        # When you click a part of a window, such as the main body, the window handle returned by functions like WindowFromPoint might refer to a sub-component or child window rather than the root (top-level) window.
+        return win32gui.GetAncestor(window_handle, win32con.GA_ROOT)
+
+    def is_valid_window(self):
+        selected_window_title = win32gui.GetWindowText(root_window_handle)
+        return (
+            True if selected_window_title and selected_window_title.strip() else False
+        )
 
     def pin_window(self):
+        """
+        Pins the window currently that was clicked.
+        """
+
         if not self.is_pinning:
             return
 
         self.stop_pin_process()
 
-        cursor_position = win32gui.GetCursorPos()
-        # WindowFromPoint gets the handle (a unique identifier) of the window located ath the cursor_position.
-        window_handle = win32gui.WindowFromPoint(cursor_position)
-        # win32con.GA_ROOT tells GetAncestor() to return the top-level or root window in the hierarchy of the given window_hanlde
-        # When you click a part of a window, such as the main body, the window handle returned by functions like WindowFromPoint might refer to a sub-component or child window rather than the root (top-level) window.
-        root_handle = win32gui.GetAncestor(window_handle, win32con.GA_ROOT)
+        root_window_handle = self.get_window_handle_root()
 
-        # TODO check if have to get root handle for winfo_id()
         # winfo_id() returns the window handle of the widget it's called on.
-        if root_handle and root_handle != self.tk_window.winfo_id():
+        if root_window_handle and root_window_handle != self.tk_window.winfo_id():
             try:
-                selected_window_title = win32gui.GetWindowText(root_handle)
-
-                if selected_window_title and selected_window_title.strip():
-                    # HWND_TOPMOST: Makes root_handle window stay on top of all other windows, even when it loses focus.
-                    # 0,0,0,0: These represent the x and y positions and width and height of the root_handle window.
-                    # SWP_NOMOVE: This flag prevents the window from being moved, it ignores x and y values.
-                    # SWP_NOSIZE: This flag prevents the window from being resized, it ignores width and height values.
-                    # |: The bitwise OR (|) is used to combine ttwo bit flags into a single value. This allows both flags to be set simultaneously. This is common patterns in low-level Windows programming.
-                    win32gui.SetWindowPos(
-                        root_handle,
-                        win32con.HWND_TOPMOST,
-                        0,
-                        0,
-                        0,
-                        0,
-                        win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
-                    )
-                    self.pinned_windows.append(root_handle)
+                if self.is_valid_window():
+                    # HWND_TOPMOST: Makes root_window_handle window stay on top of all other windows, even when it loses focus.
+                    self.window_z_index(root_window_handle, win32con.HWND_TOPMOST)
+                    self.pinned_windows.append(root_window_handle)
                 else:
                     messagebox.showwarning("Error", "No valid window selected!")
             except Exception as e:
@@ -90,7 +105,26 @@ class PinWindowApp:
         else:
             messagebox.showwarning("Error", "Please select a window other than this.")
 
+    def window_z_index(self, window_handle, is_topmost):
+        # 0,0,0,0: These represent the x and y positions and width and height of the root_window_handle window.
+        # SWP_NOMOVE: This flag prevents the window from being moved, it ignores x and y values.
+        # SWP_NOSIZE: This flag prevents the window from being resized, it ignores width and height values.
+        # |: The bitwise OR (|) is used to combine ttwo bit flags into a single value. This allows both flags to be set simultaneously. This is common patterns in low-level Windows programming.
+        win32gui.SetWindowPos(
+            window_handle,
+            is_topmost,
+            0,
+            0,
+            0,
+            0,
+            win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
+        )
+
     def run_mouse_hook(self):
+        """
+        Runs a mouse hook to capture left-click events for selecting windows to pin.
+        """
+
         # callback_function sets up a bridge for Windows to talk to Python using low_level_mouse_handler() whenever a mouse event occurs.
         # event_status: Is an integer that indicates the type or status of the hook event, if non-negative, it means the hook should process the event. Negative value is for a mouse event that doesn't fit the conditions interested it.
         # event_type: Specifies the type of mouse event that triggered the hook.
@@ -130,6 +164,10 @@ class PinWindowApp:
         ctypes.windll.user32.UnhookWindowsHookEx(self.hook)
 
     def start_mouse_hook(self):
+        """
+        Starts the mouse hook in a separate thread.
+        """
+
         # if statement is intended to ensure that only one thread is running the run_mouse_hook() at any given time.
         if self.hook_thread is None or not self.hook_thread.is_alive():
             # Creates new thread and tells the thread to execute run_mouse_hook() when it starts.
@@ -138,11 +176,19 @@ class PinWindowApp:
             self.hook_thread.start()
 
     def start_pin_process(self):
+        """
+        Activates the pinning mode by enabling the mouse hook.
+        """
+
         self.is_pinning = True
         self.pin_button.config(text="Cancel Pinning")
         self.start_mouse_hook()
 
     def stop_mouse_hook(self):
+        """
+        Stops the mouse hook and cleans up the thread.
+        """
+
         if self.hook:
             # PostThreadMessageW: Posts a message to the message queue of a specific thread (identified by its thread ID).
             # hook_thread.ident: Gets the unique ID of the thread that is running the mouse hook.
@@ -156,17 +202,29 @@ class PinWindowApp:
             self.hook = None
 
     def stop_pin_process(self):
+        """
+        Deactivates the pinning mode by disabling the mouse hook.
+        """
+
         self.is_pinning = False
         self.pin_button.config(text="Pin Window")
         self.stop_mouse_hook()
 
     def toggle_pin_process(self):
+        """
+        Toggles the pinning mode on or off based on the current state.
+        """
+
         if not self.is_pinning:
             self.start_pin_process()
         else:
             self.stop_pin_process()
 
     def unpin_window(self):
+        """
+        Unpins the most recently pinned window.
+        """
+
         if self.pinned_windows:
             try:
                 window_handle = self.pinned_windows.pop()
