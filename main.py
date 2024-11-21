@@ -15,6 +15,46 @@ from tkinter import messagebox
 import atexit
 import win32con
 import win32gui
+from PIL import Image, ImageTk
+
+
+class PushPinIcon:
+    def __init__(self, window_to_pin_handle):
+        self.window_to_pin_handle = window_to_pin_handle
+        # Creates a new, independent window separate from the main Tk window.
+        self.pushpin_window = tk.Toplevel()
+        # Set window to always stay on top of all other windows.
+        self.pushpin_window.attributes("-topmost", True)
+        # Make the color white transparent in the window
+        self.pushpin_window.attributes("-transparentcolor", "white")
+        self.pushpin_window.overrideredirect(True)
+
+        # Image provides classes and methods for manipulating images.
+        image = Image.open("pushpin.png")
+        image = image.resize((40, 40))
+        # PhotoImage class converts a pillow image into a format that tkinter can use.
+        self.pushpin_icon = ImageTk.PhotoImage(image)
+        # Widget to display text or images.
+        self.label = tk.Label(self.pushpin_window, image=self.pushpin_icon, bg="white")
+        self.label.pack()
+
+        self.update_pushpin_position()
+
+    def update_pushpin_position(self):
+        try:
+            # Rect refers to a rectangle that defines the position and size of a window.
+            rect = win32gui.GetWindowRect(self.window_to_pin_handle)
+            x = rect[0]
+            y = rect[1]
+
+            # The geometry() method is used to set the size and position of a window, the argument passed to it is a string in the format "{width}x{height}+{x}+{y}"
+            self.pushpin_window.geometry(f"+{x}+{y}")
+
+            # Schedule the nex position update
+            self.pushpin_window.after(30, self.update_pushpin_position)
+        except Exception:
+            # If any issues destroy the pushicon window
+            self.pushpin_window.destroy()
 
 
 class PinWindow:
