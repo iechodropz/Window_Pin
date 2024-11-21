@@ -65,10 +65,13 @@ class PinWindow:
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to cleanup window: {str(e)}")
 
-    def get_window_handle_root(self, window_handle):
+    def get_window_handle_from_cursor(self):
         cursor_position = win32gui.GetCursorPos()
         # WindowFromPoint gets the handle (a unique identifier) of the window located ath the cursor_position.
-        window_handle = win32gui.WindowFromPoint(cursor_position)
+        return win32gui.WindowFromPoint(cursor_position)
+
+    def get_window_handle_root(self):
+        window_handle = self.get_window_handle_from_cursor()
         # win32con.GA_ROOT tells GetAncestor() to return the top-level or root window in the hierarchy of the given window_handle
         # When you click a part of a window, such as the main body, the window handle returned by functions like WindowFromPoint might refer to a sub-component or child window rather than the root (top-level) window.
         return win32gui.GetAncestor(window_handle, win32con.GA_ROOT)
@@ -104,21 +107,6 @@ class PinWindow:
                 messagebox.showerror("Error", f"Failed to pin window: {str(e)}")
         else:
             messagebox.showwarning("Error", "Please select a window other than this.")
-
-    def window_z_index(self, window_handle, is_topmost):
-        # 0,0,0,0: These represent the x and y positions and width and height of the root_window_handle window.
-        # SWP_NOMOVE: This flag prevents the window from being moved, it ignores x and y values.
-        # SWP_NOSIZE: This flag prevents the window from being resized, it ignores width and height values.
-        # |: The bitwise OR (|) is used to combine ttwo bit flags into a single value. This allows both flags to be set simultaneously. This is common patterns in low-level Windows programming.
-        win32gui.SetWindowPos(
-            window_handle,
-            is_topmost,
-            0,
-            0,
-            0,
-            0,
-            win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
-        )
 
     def run_mouse_hook(self):
         """
@@ -234,6 +222,21 @@ class PinWindow:
                 messagebox.showerror("Error", f"Failed to unpin window: {str(e)}")
         else:
             messagebox.showwarning("Error", "No windows are pinned!")
+
+    def window_z_index(self, window_handle, is_topmost):
+        # 0,0,0,0: These represent the x and y positions and width and height of the root_window_handle window.
+        # SWP_NOMOVE: This flag prevents the window from being moved, it ignores x and y values.
+        # SWP_NOSIZE: This flag prevents the window from being resized, it ignores width and height values.
+        # |: The bitwise OR (|) is used to combine ttwo bit flags into a single value. This allows both flags to be set simultaneously. This is common patterns in low-level Windows programming.
+        win32gui.SetWindowPos(
+            window_handle,
+            is_topmost,
+            0,
+            0,
+            0,
+            0,
+            win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
+        )
 
 
 if __name__ == "__main__":
