@@ -50,6 +50,8 @@ class PushPinIcon:
             # The geometry() method is used to set the size and position of a window, the argument passed to it is a string in the format "{width}x{height}+{x}+{y}"
             self.pushpin_window.geometry(f"+{x}+{y}")
 
+            PinWindow.window_z_index(self.pushpin_window, win32con.HWND_TOPMOST)
+
             # Schedule the nex position update
             self.pushpin_window.after(30, self.update_pushpin_position)
         except Exception:
@@ -78,6 +80,7 @@ class PinWindow:
         self.tk_window = tk_window
         self.tk_window.title("Window Pin")
         self.pinned_windows = []
+        self.pushpin_root_window_handle = {}
 
         self.pin_button = tk.Button(
             tk_window, text="Pin Window", command=self.toggle_pin_process
@@ -101,6 +104,7 @@ class PinWindow:
         # Unpin all pinned windows
         for window_handle in self.pinned_windows:
             try:
+                self.remove_pin(window_handle)
                 self.window_z_index(window_handle, win32con.HWND_NOTOPMOST)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to cleanup window: {str(e)}")
@@ -141,12 +145,25 @@ class PinWindow:
                     # HWND_TOPMOST: Makes root_window_handle window stay on top of all other windows, even when it loses focus.
                     self.window_z_index(root_window_handle, win32con.HWND_TOPMOST)
                     self.pinned_windows.append(root_window_handle)
+
+                    pushpin = PushPinIcon(root_window_handle)
+                    self.pushpin_root_window_handle[root_window_handle] = pushpin
                 else:
                     messagebox.showwarning("Error", "No valid window selected!")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to pin window: {str(e)}")
         else:
             messagebox.showwarning("Error", "Please select a window other than this.")
+
+    def remove_pin(self, pushpin_root_window_handle):
+        if pushpin_root_window_handle in self.pushpin_root_window_handle:
+            self.pushpin_root_window_handle[
+                pushpin_root_window_handle
+            ].pushpin_window.destroy()
+
+            del self.pushpin_root_window_handle[pushpin_root_window_handle]
+
+            self.window_z_index(pushpin_root_window_handle, win32con.HWND_NOTOPMOST)
 
     def run_mouse_hook(self):
         """
@@ -256,6 +273,7 @@ class PinWindow:
         if self.pinned_windows:
             try:
                 window_handle = self.pinned_windows.pop()
+                self.remove_pin(self, window_handle)
                 # NOTOPMOST: Specifies that window_handle should no longer be a topmost window but instead be placed below all other topmost windows.
                 self.window_z_index(window_handle, win32con.HWND_NOTOPMOST)
             except Exception as e:
@@ -263,6 +281,7 @@ class PinWindow:
         else:
             messagebox.showwarning("Error", "No windows are pinned!")
 
+    @staticmethod
     def window_z_index(self, window_handle, is_topmost):
         # 0,0,0,0: These represent the x and y positions and width and height of the root_window_handle window.
         # SWP_NOMOVE: This flag prevents the window from being moved, it ignores x and y values.
