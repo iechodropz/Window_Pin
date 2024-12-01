@@ -282,7 +282,7 @@ class PinWindow:
             messagebox.showwarning("Error", "No windows are pinned!")
 
     @staticmethod
-    def window_z_index(self, window_handle, is_topmost):
+    def window_z_index(window_handle, is_topmost):
         # 0,0,0,0: These represent the x and y positions and width and height of the root_window_handle window.
         # SWP_NOMOVE: This flag prevents the window from being moved, it ignores x and y values.
         # SWP_NOSIZE: This flag prevents the window from being resized, it ignores width and height values.
