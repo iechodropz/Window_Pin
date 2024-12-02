@@ -29,8 +29,6 @@ class PushPinIcon:
         self.pushpin_window.attributes("-transparentcolor", "white")
         self.pushpin_window.overrideredirect(True)
 
-        PinWindow.window_z_index(self.pushpin_window.winfo_id(), win32con.HWND_TOPMOST)
-
         # Image provides classes and methods for manipulating images.
         image = Image.open("pushpin.png")
         image = image.resize((40, 40))
@@ -51,6 +49,10 @@ class PushPinIcon:
 
             # The geometry() method is used to set the size and position of a window, the argument passed to it is a string in the format "{width}x{height}+{x}+{y}"
             self.pushpin_window.geometry(f"+{x}+{y}")
+
+            PinWindow.window_z_index(
+                self.pushpin_window.winfo_id(), win32con.HWND_TOPMOST
+            )
 
             # Schedule the nex position update
             self.pushpin_window.after(30, self.update_pushpin_position)
