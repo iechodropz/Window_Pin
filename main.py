@@ -26,7 +26,7 @@ class PushPinIcon:
         # Set window to always stay on top of all other windows.
         self.pushpin_window.attributes("-topmost", True)
         # Make the color white transparent in the window
-        self.pushpin_window.attributes("-transparentcolor", "white")
+        # self.pushpin_window.attributes("-transparentcolor", "white")
         self.pushpin_window.overrideredirect(True)
 
         # Image provides classes and methods for manipulating images.
@@ -53,7 +53,7 @@ class PushPinIcon:
             PinWindow.window_z_index(self.pushpin_window, win32con.HWND_TOPMOST)
 
             # Schedule the nex position update
-            self.pushpin_window.after(30, self.update_pushpin_position)
+            self.pushpin_window.after(100, self.update_pushpin_position)
         except Exception:
             # If any issues destroy the pushicon window
             self.pushpin_window.destroy()
@@ -273,7 +273,7 @@ class PinWindow:
         if self.pinned_windows:
             try:
                 window_handle = self.pinned_windows.pop()
-                self.remove_pin(self, window_handle)
+                self.remove_pin(window_handle)
                 # NOTOPMOST: Specifies that window_handle should no longer be a topmost window but instead be placed below all other topmost windows.
                 self.window_z_index(window_handle, win32con.HWND_NOTOPMOST)
             except Exception as e:
