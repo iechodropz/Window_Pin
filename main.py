@@ -26,8 +26,10 @@ class PushPinIcon:
         # Set window to always stay on top of all other windows.
         self.pushpin_window.attributes("-topmost", True)
         # Make the color white transparent in the window
-        # self.pushpin_window.attributes("-transparentcolor", "white")
+        self.pushpin_window.attributes("-transparentcolor", "white")
         self.pushpin_window.overrideredirect(True)
+
+        PinWindow.window_z_index(self.pushpin_window.winfo_id(), win32con.HWND_TOPMOST)
 
         # Image provides classes and methods for manipulating images.
         image = Image.open("pushpin.png")
@@ -50,13 +52,14 @@ class PushPinIcon:
             # The geometry() method is used to set the size and position of a window, the argument passed to it is a string in the format "{width}x{height}+{x}+{y}"
             self.pushpin_window.geometry(f"+{x}+{y}")
 
-            PinWindow.window_z_index(self.pushpin_window, win32con.HWND_TOPMOST)
-
             # Schedule the nex position update
-            self.pushpin_window.after(100, self.update_pushpin_position)
-        except Exception:
+            self.pushpin_window.after(30, self.update_pushpin_position)
+        except Exception as e:
             # If any issues destroy the pushicon window
             self.pushpin_window.destroy()
+            messagebox.showerror(
+                "Error", f"Failed to update pushpin position: {str(e)}"
+            )
 
 
 class PinWindow:
