@@ -104,7 +104,6 @@ class PinWindow:
         # Unpin all pinned windows
         for window_handle in self.pinned_windows:
             try:
-                self.remove_pin(window_handle)
                 self.window_z_index(window_handle, win32con.HWND_NOTOPMOST)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to cleanup window: {str(e)}")
@@ -146,8 +145,9 @@ class PinWindow:
                     self.window_z_index(root_window_handle, win32con.HWND_TOPMOST)
                     self.pinned_windows.append(root_window_handle)
 
-                    pushpin = PushPinIcon(root_window_handle)
-                    self.pushpin_root_window_handle[root_window_handle] = pushpin
+                    self.pushpin_root_window_handle[root_window_handle] = PushPinIcon(
+                        root_window_handle
+                    )
                 else:
                     messagebox.showwarning("Error", "No valid window selected!")
             except Exception as e:
