@@ -23,6 +23,10 @@ class PushPinIcon:
         self.window_to_pin_handle = window_to_pin_handle
         # Creates a new, independent window separate from the main Tk window.
         self.pushpin_window = tk.Toplevel()
+
+        self.setup_pushpin()
+
+    def setup_pushpin(self):
         # Set window to always stay on top of all other windows.
         self.pushpin_window.attributes("-topmost", True)
         # Make the color white transparent in the window
