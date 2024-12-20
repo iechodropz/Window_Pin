@@ -206,7 +206,7 @@ class PinWindow:
 
         # MSG object is used by the Windows API to store message information, holds details about messages sent to the application's message queue.
         msg = ctypes.wintypes.MSG()
-        # GetMessageW(): Retrieves the next message from the application's message queue, storing the details in the msg object. Returns a non-zero value when a message other than WM_QUIT is retrieved.
+        # GetMessageW(): Retrieves the next message from the application's message queue, storing the details in the msg object. Returns a non-zero value when a message other than WM_QUIT is retrieved. It also blocks/waits until any Windows message arrives (not just mouse clicks)
         # None: Specifies that we want messages from all windows owned by the application
         # 0, 0: These two zero values mean we're interested in all types of messages (by setting the minimum and maximum message values to 0).
         while ctypes.windll.user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
